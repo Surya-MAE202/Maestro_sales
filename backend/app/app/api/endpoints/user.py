@@ -355,3 +355,263 @@ async def activeInactiveUser(db:Session=Depends(get_db),
             return {'status':0,"msg":"You are not authenticated to change status of any user"}
     else:
         return {'status':-1,"msg":"Your login session expires.Please login again."}
+
+
+@router.post("/create_customer")
+async def createCustomer(db:Session =Depends(get_db),
+                        token:str=Form(...),name:str=Form(None),
+                        contact_person:str=Form(None),
+                        phone_country_code:str=Form(None),
+                        whatsapp_country_code:str=Form(None),
+                        alter_country_code:str=Form(None),
+                        phone:str=Form(None),
+                        alternative_no:str=Form(None),
+                        landline_number:str=Form(None),
+                        whatsapp_no:str=Form(None),
+                        address:str=Form(None),
+                        area :str=Form(None),
+                        email:str=Form(None),
+                        companyName:str=Form(None),
+                        pincode:str=Form(None),state:str = Form(None),
+                        city:str=Form(None)):
+    
+    user = get_user_token(db=db,token=token)
+    if user:
+        if user.user_type in [1,2,3,4]:
+            getUser = db.query(User).filter(User.user_type == 6,User.status == 1)
+            if whatsapp_no == None and phone == None and landline_number == None and email == None:
+                return {"status":0,"msg":"Please fill Any one of the Contact Information"}
+            if name == None and contact_person == None and companyName == None:
+                return {"status":0,"msg":"Please fill Company Name or Contact Person"}
+            if email:
+                checkEmail = getUser.filter(User.email == email ).first()
+                if checkEmail:
+                    return {"status":0,"msg":"Email already exists."}
+            if phone:
+                if not phone.isdigit():
+                    return {"status":0,"msg":"Invalid Phone Number"}
+                checkMobileNumber = getUser.filter(or_(User.phone == phone,
+                                                    User.alternative_number == phone,
+                                                    User.whatsapp_no == phone)).first()
+                if checkMobileNumber:
+                    return {"status":0,"msg":"Mobile number already in use."}
+            if alternative_no:
+                if not alternative_no.isdigit():
+                    return {"status":0,"msg":"Alternative number should be numeric."}
+                checkAlternativeMobile = getUser.filter(or_(User.phone == alternative_no,
+                                                   User.alternative_number == alternative_no,
+                                                   User.whatsapp_no == alternative_no)).first()
+                if checkAlternativeMobile:
+                    return {"status":0,"msg":"Mobile number already in use."}
+            if whatsapp_no:
+                if not whatsapp_no.isdigit():
+                    return {"status":0,"msg":"Invalid WhatsApp Number"}
+                checkWhatsApp = getUser.filter(or_(User.phone == whatsapp_no,
+                                                   User.alternative_number == whatsapp_no,
+                                                   User.whatsapp_no == whatsapp_no)).first()
+                if checkWhatsApp:
+                    return {"status":0,"msg":"Mobile number already in use."}
+
+            
+            createNewCustomer = User(
+                user_type = 6,
+                name = name,
+                username = contact_person,
+                phone = phone,
+                alternative_number = alternative_no,
+                phone_country_code =phone_country_code,
+                whatsapp_country_code =whatsapp_country_code,
+                alter_country_code =alter_country_code,
+                whatsapp_no = whatsapp_no,
+                landline_number = landline_number,
+                address = address,
+                area = area,
+                states = state,
+                city = city,
+                pincode = pincode,
+                created_at = datetime.now(settings.tz_IN),
+                status = 1,
+                email = email,
+                company_name=companyName,
+                is_active = 1
+            )
+
+            db.add(createNewCustomer)
+            db.commit()
+            return {"status":1,"msg":"Customer successfully created."}
+        else:
+            return {"status":0,"msg":"You are not authenticate to add any customer."}
+    else:
+        return {'status':-1,"msg":"Your login session expires.Please login again."}
+
+@router.post("/update_customer")
+async def updateCustomer(db: Session = Depends(get_db),
+                         token:str=Form(None),name:str=Form(None),
+                         contact_person:str=Form(None),
+                         phone:str=Form(None),
+                          phone_country_code:str=Form(None),
+                        whatsapp_country_code:str=Form(None),
+                        alter_country_code:str=Form(None),
+                         alternative_no:str=Form(None),
+                         whatsapp_no:str=Form(None),
+                         address:str=Form(None),
+                         landline_number:str=Form(None),
+                          area :str=Form(None),
+                          email:str=Form(None),
+                          companyName:str=Form(None),
+                          pincode:str=Form(None),state:str = Form(None),
+                          country:str = Form(None),
+                          city:str=Form(None),CustomerId:int=Form(...)
+                         ):
+    user = get_user_token(db=db,token=token)
+    if user:
+        if user.user_type in [1,2,3,4]:
+            getUser = db.query(User).filter(User.user_type ==6,User.status == 1)
+            checkUserId = getUser.filter(User.id == CustomerId).first()
+            exceptionCustomer = getUser.filter(User.id != CustomerId)
+
+            if not checkUserId:
+                return {'status':0,"msg":"No customer record found."}
+            if whatsapp_no == None and phone == None and landline_number == None and email == None:
+                return {'status':0,"msg":"Please enter any contact number or email."}
+            if name == None and contact_person == None or companyName == None:
+                return {"status":0,"msg":"Please fill Company Name or Contact Person"}
+            if email:
+                checkEmail = exceptionCustomer.filter(User.email == email ).first()
+                if checkEmail:
+                    return {"status":0,"msg":"Email already exists."}
+            if phone:
+                if not phone.isdigit() or not phone.count() == 10:
+                    return {"status":0,"msg":"Please enter valid phone number."}
+                checkMobileNumber = exceptionCustomer.filter(or_(User.phone == phone,
+                                                    User.alternative_number == phone,
+                                                    User.whatsapp_no == phone)).first()
+                if checkMobileNumber:
+                    return {"status":0,"msg":"Mobile number already in use."}
+            if alternative_no:
+                if not alternative_no.isdigit():
+                    return {"status":0,"msg":"Please enter valid alternative phone number."}
+                checkAlternativeMobile = exceptionCustomer.filter(or_(User.phone == alternative_no,
+                                                   User.alternative_number == alternative_no,
+                                                   User.whatsapp_no == alternative_no)).first()
+                if checkAlternativeMobile:
+                    return {"status":0,"msg":"alternative Mobile number already in use."}
+            if whatsapp_no:
+                if not whatsapp_no.isdigit():
+                    return {"status":0,"msg":"Please enter valid whatsapp number."}
+                checkWhatsApp = exceptionCustomer.filter(or_(User.phone == whatsapp_no,
+                                                   User.alternative_number == whatsapp_no,
+                                                   User.whatsapp_no == whatsapp_no)).first()
+                if checkWhatsApp:
+                    return {"status":0,"msg":"Whatsapp number already in use."}
+            
+            
+            checkUserId.name = name
+            checkUserId.username = contact_person
+            checkUserId.phone = phone
+            checkUserId.alternative_number = alternative_no
+            checkUserId.phone_country_code = phone_country_code
+            checkUserId.whatsapp_country_code = whatsapp_country_code
+            checkUserId.alter_country_code = alter_country_code
+            checkUserId.whatsapp_no = whatsapp_no
+            checkUserId.address = address
+            checkUserId.area = area
+            checkUserId.states = state
+            checkUserId.city = city
+            checkUserId.country = country
+            checkUserId.pincode = pincode
+            checkUserId.updated_at = datetime.now(settings.tz_IN)
+            checkUserId.email = email
+            checkUserId.company_name = companyName
+            
+            db.commit()
+            return {"status":1,"msg":"Customer details updated successfully."}
+        else:
+            return {"status":0,"msg":"You are not authenticated to update/edit customer details."}
+    else:
+        return {"status":-1,"msg":"Your login session expires.Please login again."}
+
+
+@router.post("/list_customer")
+async def listCustomers(db:Session =Depends(get_db),
+                        token:str=Form(...),
+                        page:int=1,size:int=10,
+                        mobileNumber:str=Form(None),
+                        name:str=Form(None),state:str = Form(None),
+                          country:str = Form(None),
+                          city:str=Form(None),):
+    user = get_user_token(db=db,token=token)
+    if user:
+        if user.user_type in [1,2,3,4]:
+            getAllCustomer = db.query(User).filter(User.user_type == 6,
+                                                   User.status == 1)
+            if mobileNumber:
+                getAllCustomer = getAllCustomer.\
+                    filter(or_(User.phone.like('%'+mobileNumber+'%'),
+                               User.alternative_number.like('%'+mobileNumber+'%'),
+                               User.whatsapp_no.like('%'+mobileNumber+'%')))
+            if name:
+                getAllCustomer = getAllCustomer.filter(or_(User.name.like('%'+name+'%'),
+                                                           User.user_name.like("%"+name+"%")))
+            if state:
+                getAllCustomer = getAllCustomer.filter(User.states.like("%"+state+"%"))  
+            if country:
+                getAllCustomer = getAllCustomer.filter(User.country.like("%"+country+"%"))
+            if city:
+                getAllCustomer = getAllCustomer.filter(User.city.like("%"+city+"%"))
+            
+            getAllCustomer = getAllCustomer.order_by(User.name.asc())
+            
+            totalCount = getAllCustomer.count()
+            totalPages,offset,limit = get_pagination(totalCount,page,size)
+            getAllCustomer = getAllCustomer.limit(limit).offset(offset).all()
+            dataList = []
+            if getAllCustomer:
+                for row in getAllCustomer:
+                    dataList.append({"customerId":row.id,
+                                     "name":row.name,
+                                     "contactPerson":row.username,
+                                     "phone":row.phone,
+                                     "alternative_number":row.alternative_number,
+                                     "phone_country_code" : row.phone_country_code,
+                                    "whatsapp_country_code" :row.whatsapp_country_code,
+                                    "alter_country_code" : row.alter_country_code,
+                                     "address":row.address,
+                                     "area":row.area,
+                                    "whatsapp_no":row.whatsapp_no if row.whatsapp_no else None,
+
+                                    "stateName":row.states,
+                                    "cityName":row.city,
+                                    "countryName":row.country,
+                                    "pincode":row.pincode,
+                                    "email":row.email,
+                                    "companyName":row.company_name
+                                     })
+            data=({"page":page,"size":size,
+                "total_page":totalPages,
+                "total_count":totalCount,
+                "items":dataList})
+            
+            return ({"status":1,"msg":"Success.","data":data})
+        else:
+            return {"status":0,"msg":"You are not authenticated to see the customer details."}
+    else:
+        return {"status":-1,"msg":"Your login session expires.Please login again."}
+    
+@router.post("/delete_customer")
+async def deleteCustomer(db:Session=Depends(get_db),
+                         token:str=Form(...),
+                         customerId:int=Form(...)):
+    user = get_user_token(db=db,token=token)
+    if user:
+        if user.user_type in [1,2]:
+            deleteCustomer = db.query(User).\
+                filter(User.id == customerId,
+                User.user_type == 6).update({"status":-1,"is_active":-1})
+            db.commit()
+
+            return {"status":1,"msg":"Customer details successfully removed."}
+        else:
+            return {"status":0,"msg":"You are not authenticated to delete the customer record."}
+    else:
+        return {"status":-1,"msg":"Your login session expires.Please login again."}
