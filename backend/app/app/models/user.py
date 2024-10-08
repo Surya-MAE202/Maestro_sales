@@ -39,3 +39,8 @@ class User(Base):
 
     api_tokens=relationship("ApiTokens",back_populates="user")
     dealer = relationship('User', remote_side=[id])
+    lead_history = relationship("LeadHistory",back_populates="user")
+    category = relationship("Category",back_populates="user")
+    enquiry_type = relationship("EnquiryType",back_populates="user")
+    lead_status = relationship("LeadStatus",back_populates="user")
+    requirements = relationship("Requirements",back_populates="user")

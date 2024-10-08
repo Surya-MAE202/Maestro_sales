@@ -15,9 +15,9 @@ async def createUser(db:Session = Depends(get_db),
                      token:str = Form(...),
                      name:str = Form(...),
                      userName:str=Form(...),phoneNumber:str=Form(...),
-                     email:str=Form(None),
+                     email:str=Form(...),
                      landline_number:str=Form(None),
-                     state:str=Form(None),city:str=Form(None),country:str=Form(None),password:str=Form(None),
+                     state:str=Form(None),city:str=Form(None),country:str=Form(None),password:str=Form(...),
                      userType:int=Form(None,description="2->Admin,3->Dealer,4->dealerAdmin,5->Employee"),pincode:str=Form(None),
                      dealer_id : int=Form(None),
                      dealer_code : str = Form(None)
@@ -46,11 +46,10 @@ async def createUser(db:Session = Depends(get_db),
         if userType == 2:
            if user.user_type != 1:
                 return {"status":0,"msg":"You are not authorized to create admin."}
-        dealer_code = None
         if userType == 3 :
             if user.user_type not in [1,2]:
                   return {"status":0,"msg":"You are not authorized to create dealer."}
-            check_dealerCode = getUser.filter(User.dealer == dealer_code).first()
+            check_dealerCode = getUser.filter(User.dealer_code == dealer_code).first()
             if check_dealerCode:
                  return {"status":0,"msg":"DealerCode already exits"}
         if user.user_type == 3:
@@ -59,9 +58,6 @@ async def createUser(db:Session = Depends(get_db),
         if userType in [4,5]:
                 if not dealer_id and not user.user_type == 3:
                         return {"status":0,"msg":"Need dealer."}
-                if dealer_id:
-                     dealer = getUser.filter(User.id == dealer_id).first()
-                     dealer_code = dealer.dealer_code
                 elif user.user_type == 3:
                     dealer_id = user.id
                     dealer_code = user.dealer_code
@@ -71,6 +67,9 @@ async def createUser(db:Session = Depends(get_db),
                 check_phone = getUser.filter(User.phone == phoneNumber,User.dealer_id == dealer_id,User.is_active == True).first()
                 if not checkDealerId:
                         return {"status":1,"msg":"Invalid dealer."}
+                if dealer_id:
+                     dealer = getUser.filter(User.id == dealer_id).first()
+                     dealer_code = dealer.dealer_code
                 if userType == 4:
                      check_dealerAdmin = getUser.filter(User.dealer_id == dealer_id,User.user_type == 4,User.is_active == True).first()
                      if check_dealerAdmin:
@@ -248,6 +247,7 @@ async def listUser(db:Session =Depends(get_db),
                             "userTypeName": userTypeData[userData.user_type],
                             "dealer_id":userData.dealer_id ,
                             "dealerName":userData.dealer.username if userData.dealer_id else None,
+                            "dealer_code":userData.dealer_code,
                             "location":userData.city
                         }
                     )
@@ -299,7 +299,9 @@ async def viewUser(db:Session=Depends(get_db),
 
 
                 }
-            return {"status":1,"msg":"Success.","data":data}
+                return {"status":1,"msg":"Success.","data":data}
+            else:
+                return {'status':0,'msg':'User not found'}
         else:
             return {'status':0,"msg":"You are not authenticated to view any user."}
     return {"status":-1,"msg":"Your login session expires.Please login again."}
